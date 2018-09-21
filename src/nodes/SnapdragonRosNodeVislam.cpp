@@ -33,8 +33,10 @@
 
 #include <geometry_msgs/PointStamped.h>
 #include <geometry_msgs/PoseStamped.h>
+#include <geometry_msgs/TwistStamped.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <geometry_msgs/Vector3.h>
+#include <geometry_msgs/Vector3Stamped.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <nav_msgs/Odometry.h>
 #include <tf2/LinearMath/Matrix3x3.h>
@@ -43,13 +45,15 @@
 
 Snapdragon::RosNode::Vislam::Vislam( ros::NodeHandle nh ) : nh_(nh)
 {
-  pub_vislam_pose_ = nh_.advertise<geometry_msgs::PoseStamped>("vislam/pose",1);
+  //pub_vislam_pose_ = nh_.advertise<geometry_msgs::PoseStamped>("vislam/pose",1);
   pub_vislam_pose_cov_ = nh_.advertise<geometry_msgs::PoseWithCovarianceStamped>("vislam/pose_cov",1);
-  pub_vislam_odometry_ = nh_.advertise<nav_msgs::Odometry>("vislam/odometry",1);
-  pub_vislam_tbc_estimate_ = nh_.advertise<geometry_msgs::Vector3>("vislam/tbc",1);
-  pub_vislam_rbc_estimate_x_ = nh_.advertise<geometry_msgs::Vector3>("vislam/rbc_x", 1);
-  pub_vislam_rbc_estimate_y_ = nh_.advertise<geometry_msgs::Vector3>("vislam/rbc_y", 1);
-  pub_vislam_rbc_estimate_z_ = nh_.advertise<geometry_msgs::Vector3>("vislam/rbc_z", 1);
+  pub_vislam_speed_twist_ = nh_.advertise<geometry_msgs::TwistStamped>("vislam/speed_twist",1);
+  //pub_vislam_speed_vec_ = nh_.advertise<geometry_msgs::Vector3Stamped>("vislam/speed_vec",1);
+  //pub_vislam_odometry_ = nh_.advertise<nav_msgs::Odometry>("vislam/odometry",1);
+  //pub_vislam_tbc_estimate_ = nh_.advertise<geometry_msgs::Vector3>("vislam/tbc",1);
+  //pub_vislam_rbc_estimate_x_ = nh_.advertise<geometry_msgs::Vector3>("vislam/rbc_x", 1);
+  //pub_vislam_rbc_estimate_y_ = nh_.advertise<geometry_msgs::Vector3>("vislam/rbc_y", 1);
+  //pub_vislam_rbc_estimate_z_ = nh_.advertise<geometry_msgs::Vector3>("vislam/rbc_z", 1);
   vislam_initialized_ = false;
   thread_started_ = false;
   thread_stop_ = false;
@@ -265,8 +269,9 @@ int32_t Snapdragon::RosNode::Vislam::PublishVislamData( mvVISLAMPose& vislamPose
   pose_msg.pose.orientation.y = q.getY();
   pose_msg.pose.orientation.z = q.getZ();
   pose_msg.pose.orientation.w = q.getW();
-  pub_vislam_pose_.publish(pose_msg);
+  //pub_vislam_pose_.publish(pose_msg);
   
+  /*
   // Publish translation and rotation estimates
   geometry_msgs::Vector3 tbc_msg;
   tbc_msg.x = vislamPose.tbc[0];
@@ -291,8 +296,8 @@ int32_t Snapdragon::RosNode::Vislam::PublishVislamData( mvVISLAMPose& vislamPose
   rbc_z_msg.y = vislamPose.Rbc[2][1];
   rbc_z_msg.z = vislamPose.Rbc[2][2];
   pub_vislam_rbc_estimate_z_.publish(rbc_z_msg);
+  */
   
-
   //publish the odometry message.
   nav_msgs::Odometry odom_msg;
   odom_msg.header.stamp = frame_time;
@@ -311,8 +316,24 @@ int32_t Snapdragon::RosNode::Vislam::PublishVislamData( mvVISLAMPose& vislamPose
       odom_msg.pose.covariance[ i*6 + j ] = vislamPose.errCovPose[i][j];
     }
   }
-  pub_vislam_odometry_.publish(odom_msg);
-  
+  //pub_vislam_odometry_.publish(odom_msg);
+
+  //publish the velocity message
+  geometry_msgs::TwistStamped speed_twist_msg;
+  speed_twist_msg.header = odom_msg.header;
+  speed_twist_msg.twist = odom_msg.twist.twist;
+  pub_vislam_speed_twist_.publish(speed_twist_msg);
+
+/*
+  //TEST publish velocity vector message
+  geometry_msgs::Vector3Stamped speed_vec_msg;
+  speed_vec_msg.header = odom_msg.header;
+  speed_vec_msg.vector.x = vislamPose.velocity[0];
+  speed_vec_msg.vector.y = vislamPose.velocity[1];
+  speed_vec_msg.vector.z = vislamPose.velocity[2];
+  pub_vislam_speed_vec_.publish(speed_vec_msg);
+*/
+
   // Publish pose with covariance (for mavros)
   geometry_msgs::PoseWithCovarianceStamped pose_cov_msg;
   pose_cov_msg.header = odom_msg.header;
